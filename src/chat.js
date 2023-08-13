@@ -5,6 +5,7 @@ import Logo from "./logo";
 import { userContext } from "./userContext";
 import axios from "axios";
 import Contact from "./contact";
+import "./App.css"
 
 export default function Chat(){
 
@@ -17,14 +18,15 @@ export default function Chat(){
 
     
     
-    const { LoggedInUsername , id ,setId ,setUsername } = useContext(userContext);
+    const { LoggedInUsername , id , setId ,setLoggedInUsername } = useContext(userContext);
 
     const divUnderMessages = useRef();
 
 
     useEffect(() =>{
         connectToWs();    
-    },[]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    },[ selectedUserId]);
 
 
     function connectToWs(){
@@ -54,13 +56,22 @@ export default function Chat(){
         if('online' in messageData){
             showOnlinePeople(messageData.online)
         }else if('text' in messageData) {
-            setMessages( prev => ([...prev , { ...messageData}]))
+            if(messageData.sender === selectedUserId){
+                setMessages( prev => ([...prev , { ...messageData}]))
+            }
         }
 
     }
 
-    function logout(){
+    function logout(e){
+       
+        axios.post('/logout').then(() => {
+            setWs(null)
+            setId(null);
+            setLoggedInUsername(null);
+            
 
+        })
     }
 
 
@@ -68,21 +79,46 @@ export default function Chat(){
 
    
 
-    function sendMesaage(e){
-        e.preventDefault();
+    function sendMesaage(e , file){
+        if(e) e.preventDefault();
+        
         ws.send(JSON.stringify({
-                recipient: selectedUserId,
-                text : newMessageText,
-        }))
-        setNewMessageText('')
-        setMessages(prev => ([...prev , {
+            recipient: selectedUserId,
+            text : newMessageText,
+            file,
+        }));
+        if(file){
+            axios.get('/messages/'+selectedUserId )
+            .then(res => {
+                setMessages(res.data)
+            })
+        }else {
+            setNewMessageText('')
+            setMessages(prev => ([...prev , {
             sender:id,
             recipient:selectedUserId,
             text:newMessageText , 
             _id: Date.now(),
         }]))
+        }
         
     }
+
+
+    function sendFile(e) {
+        const reader =  new FileReader();
+        reader.readAsDataURL(e.target.files[0])
+        reader.onload = () => {
+            sendMesaage(null , {
+                name : e.target.files[0].name,
+                data: reader.result,
+            });
+        };
+
+       
+        
+    }
+
 
     useEffect(() =>{
         const div = divUnderMessages.current;
@@ -91,6 +127,7 @@ export default function Chat(){
             div.scrollIntoView({behavior:'smooth' , block :'end'});
         }
     }, [messages]);
+    
 
     useEffect(() => {
         axios.get('/people').then(res => {
@@ -103,7 +140,8 @@ export default function Chat(){
             })
             setOfflinePeople(offlinePeople);
         })
-    },[onlinePeople])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    },[ onlinePeople ])
 
 
     useEffect(() => {
@@ -126,13 +164,16 @@ export default function Chat(){
 
     
     return(
-        <div className="flex h-screen">
+        <div className="flex h-screen ">
              
             <div className="w-1/3 flex flex-col ">  
+
+            
             
             <div className="flex-grow">
+               
+            <Logo />
                 
-                <Logo />
                     {Object.keys(onlinePeopleExUser).map(userId => (
                     <Contact 
                         key={userId}
@@ -158,7 +199,16 @@ export default function Chat(){
 
             </div>
 
-            <div className="p-2 text-center">
+            
+
+            <div className="chat p-2 text-center flex items-center justify-center">
+                <span className="mr-2 text-sm text-gray-600 flex items-center" >
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+                    <path fillRule="evenodd" d="M7.5 6a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM3.751 20.105a8.25 8.25 0 0116.498 0 .75.75 0 01-.437.695A18.683 18.683 0 0112 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 01-.437-.695z" clipRule="evenodd" />
+                    </svg>
+
+                    {LoggedInUsername}
+                </span>
                 <button className="text-sm bg-blue-100 py-1 px-3 text-gray-500 rounded-sm" 
                         onClick={logout}
                 >
@@ -186,8 +236,19 @@ export default function Chat(){
                         <div className=" overflow-y-scroll absolute top-0 left-0 right-0 bottom-2">
                             {messagesWithoutDupes.map( message => (
                             <div key={message._id} className={(message.sender === id ? 'text-right' : 'text-left')}  >
-                                <div className={"text-left inline-block p-2 my-2 rounded-md text-sm " +(message.sender === id ? 'bg-blue-500 text-white' : 'bg-white text-blue-500')}>
+                                <div className={"border-bottom  text-left inline-block p-2 my-2 rounded-md text-sm " +(message.sender === id ? 'bg-blue-500 text-white' : 'bg-white text-blue-500')}>
                                     {message.text}
+                                    {message.file && (
+                                        <div  >
+                                             
+                                            <a target="_blank" className="flex items-center gap-1 " href={axios.defaults.baseURL + '/uploads/' + message.file} rel="noreferrer" >
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+                                                    <path fillRule="evenodd" d="M18.97 3.659a2.25 2.25 0 00-3.182 0l-10.94 10.94a3.75 3.75 0 105.304 5.303l7.693-7.693a.75.75 0 011.06 1.06l-7.693 7.693a5.25 5.25 0 11-7.424-7.424l10.939-10.94a3.75 3.75 0 115.303 5.304L9.097 18.835l-.008.008-.007.007-.002.002-.003.002A2.25 2.25 0 015.91 15.66l7.81-7.81a.75.75 0 011.061 1.06l-7.81 7.81a.75.75 0 001.054 1.068L18.97 6.84a2.25 2.25 0 000-3.182z" clipRule="evenodd" />
+                                                </svg>
+                                                {message.file}
+                                            </a>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                             ))}
@@ -203,20 +264,28 @@ export default function Chat(){
 
                 {!!selectedUserId && (
 
-                    <form className="flex gap-2 " onSubmit={sendMesaage}>
+                    <form className="flex gap-1 " onSubmit={sendMesaage}>
                         <input 
-
-                    
                             value={ newMessageText }
                             onChange={(e) => setNewMessageText(e.target.value)}
                             type="text" 
-                            className="bg-white flex-grow border rounded-sm p-2"
+                            className=" input bg-white flex-grow border rounded-sm p-2 "
                             placeholder="Type your message here.."
                         />
 
-                        <button disabled={!newMessageText} className="bg-blue-500 p-2 text-white rounded-sm">
+                        <label className="bg-blue-200 p-2 text-gray-600 cursor-pointer rounded-sm border border-blue-200">
                             
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                            <input type="file" className="hidden" onChange={sendFile} />
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
+                                    <path fillRule="evenodd" d="M18.97 3.659a2.25 2.25 0 00-3.182 0l-10.94 10.94a3.75 3.75 0 105.304 5.303l7.693-7.693a.75.75 0 011.06 1.06l-7.693 7.693a5.25 5.25 0 11-7.424-7.424l10.939-10.94a3.75 3.75 0 115.303 5.304L9.097 18.835l-.008.008-.007.007-.002.002-.003.002A2.25 2.25 0 015.91 15.66l7.81-7.81a.75.75 0 011.061 1.06l-7.81 7.81a.75.75 0 001.054 1.068L18.97 6.84a2.25 2.25 0 000-3.182z" clipRule="evenodd" />
+                               </svg>
+
+
+                        </label>
+
+                        <button  className="bg-blue-500 p-2 text-white rounded-sm border border-gray-400">
+                            
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
                             </svg>
                         </button>

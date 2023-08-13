@@ -1,0 +1,9 @@
+@media (max-width : 900px){
+    .chat{
+        width: 90%;
+    }
+
+    .input{
+        width: 90%;
+    }
+}

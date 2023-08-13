@@ -9,19 +9,27 @@ export default function RegisterAndLoginForm(){
     const [password , setPassword] = useState('');
     const [isLoginOrRegister , setIsLoginOrRegister] = useState('register')
 
-    const {setLoggedInUsername , setId} = useContext(userContext)
+    const {setLoggedInUsername , setId  } = useContext(userContext)
     
     async function handleSubmit(e){
         e.preventDefault();
         const url = isLoginOrRegister === 'register' ? 'register' : 'login'
-        const {data} = await axios.post(url , {username , password});
+        try{
+            const {data} = await axios.post(url , {username , password});
         setLoggedInUsername(username);
         setId(data.id);
+        }
+        catch(err){
+            //console.log("error happened error");
+            alert(err.response.data.err);
+        }
     }
 
    return(
-    <div className="bg-blue-50 h-screen flex items-center">
-        <Logo />
+    
+    <div className="bg-blue-50 h-screen flex items-center ">
+       
+        <Logo/>
         <form className="w-64 mx-auto mb-12" onSubmit={handleSubmit}>
             <input
                 value = {username} 
@@ -51,7 +59,7 @@ export default function RegisterAndLoginForm(){
                         </button>
                     </div>
 
-                )}
+)}
             {
                 isLoginOrRegister === 'login' && (
                     <div>
@@ -61,7 +69,7 @@ export default function RegisterAndLoginForm(){
                         </button>
                     </div>
 
-                )}
+)}
                
             </div>
         </form>
