@@ -30,9 +30,9 @@ export default function RegisterAndLoginForm(){
     <div className="bg-blue-50 h-screen flex items-center ">
         <form className="w-64 mx-auto mb-12" onSubmit={handleSubmit}>
             
-           <diV className="px-14" >
+           <div className="px-14" >
                 <Logo  />
-           </diV>
+           </div>
            
 
             <input
