@@ -28,9 +28,13 @@ export default function RegisterAndLoginForm(){
    return(
     
     <div className="bg-blue-50 h-screen flex items-center ">
-       
-        <Logo/>
         <form className="w-64 mx-auto mb-12" onSubmit={handleSubmit}>
+            
+           <diV className="px-14" >
+                <Logo  />
+           </diV>
+           
+
             <input
                 value = {username} 
                 type="text" 
